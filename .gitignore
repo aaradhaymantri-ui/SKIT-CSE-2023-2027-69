@@ -5,3 +5,5 @@ db.sqlite3
 .env
 media/
 staticfiles/
+/Gamified-Environmental-Education-main/backend/users.db
+/Gamified-Environmental-Education-main/frontend/dist/

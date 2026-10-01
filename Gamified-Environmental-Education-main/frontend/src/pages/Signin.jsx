@@ -27,11 +27,11 @@ const Signin = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Save user info if needed
-        localStorage.setItem("userName", data.name || "Student");
+        localStorage.setItem("userName", data.user.name);
+        localStorage.setItem("currentUser", JSON.stringify(data.user));
+        localStorage.setItem("authToken", data.token);
 
-        // Redirect to StudentDashboard
-        navigate("/studentdashboard");
+        navigate(data.user.role === "teacher" ? "/teacherdashboard" : "/studentdashboard");
       } else {
         alert(data.error || "Signin failed");
       }

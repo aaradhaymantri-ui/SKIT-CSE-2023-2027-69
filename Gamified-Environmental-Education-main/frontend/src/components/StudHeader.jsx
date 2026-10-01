@@ -3,10 +3,27 @@ import { Link, useNavigate } from "react-router-dom";
 
 const StudHeader = ({ user = { name: "", ecoPoints: 0 }, activeTab }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [signedInUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("currentUser") || "null");
+    } catch (error) {
+      console.error("Could not read the signed-in user.", error);
+      return null;
+    }
+  });
   const navigate = useNavigate();
+  const displayUser = {
+    ...user,
+    name: signedInUser?.name || (localStorage.getItem("authToken") ? user.name : "Guest"),
+    role: signedInUser?.role || "student",
+    ecoPoints: user.ecoPoints || 0,
+    badges: user.badges || 0,
+  };
 
   const handleLogout = () => {
-    // In a real app, this would clear authentication tokens
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("currentUser");
+    localStorage.removeItem("userName");
     navigate('/');
   };
 
@@ -23,7 +40,7 @@ const StudHeader = ({ user = { name: "", ecoPoints: 0 }, activeTab }) => {
 
         <div className="flex items-center gap-4">
           <div className="text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2" style={{ background: 'rgba(245,158,11,0.15)', color: '#92400e' }}>
-            <span>{user.ecoPoints} Eco-Points</span>
+            <span>{displayUser.ecoPoints} Eco-Points</span>
           </div>
           
           {/* Profile Dropdown */}
@@ -34,7 +51,7 @@ const StudHeader = ({ user = { name: "", ecoPoints: 0 }, activeTab }) => {
               onMouseEnter={() => setShowProfileDropdown(true)}
               onMouseLeave={() => setShowProfileDropdown(false)}
             >
-              {user.name ? user.name.charAt(0) : "?"}
+              {displayUser.name ? displayUser.name.charAt(0) : "?"}
             </div>
 
             {/* Dropdown Menu */}
@@ -49,11 +66,11 @@ const StudHeader = ({ user = { name: "", ecoPoints: 0 }, activeTab }) => {
                 <div className="p-4" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(6,182,212,0.1))' }}>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full text-white flex items-center justify-center font-bold text-xl" style={{ background: 'var(--primary)' }}>
-                      {user.name ? user.name.charAt(0) : "?"}
+                      {displayUser.name ? displayUser.name.charAt(0) : "?"}
                     </div>
                     <div>
-                      <h3 className="font-bold text-lg" style={{ color: 'var(--text)' }}>{user.name || "User"}</h3>
-                      <p className="text-sm" style={{ color: 'var(--muted)' }}>Eco Champion 🌱</p>
+                      <h3 className="font-bold text-lg" style={{ color: 'var(--text)' }}>{displayUser.name || "Guest"}</h3>
+                      <p className="text-sm capitalize" style={{ color: 'var(--muted)' }}>{displayUser.role} account 🌱</p>
                     </div>
                   </div>
                 </div>
@@ -62,11 +79,11 @@ const StudHeader = ({ user = { name: "", ecoPoints: 0 }, activeTab }) => {
                 <div className="p-4 border-b" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="text-center p-2 rounded-xl" style={{ background: 'rgba(22,163,74,0.08)' }}>
-                      <div className="font-bold text-lg" style={{ color: 'var(--primary)' }}>{user.ecoPoints || 0}</div>
+                      <div className="font-bold text-lg" style={{ color: 'var(--primary)' }}>{displayUser.ecoPoints}</div>
                       <div className="text-xs" style={{ color: 'var(--muted)' }}>Eco-Points</div>
                     </div>
                     <div className="text-center p-2 rounded-xl" style={{ background: 'rgba(245,158,11,0.1)' }}>
-                      <div className="font-bold text-lg" style={{ color: '#ca8a04' }}>{user.badges || 7}</div>
+                      <div className="font-bold text-lg" style={{ color: '#ca8a04' }}>{displayUser.badges}</div>
                       <div className="text-xs" style={{ color: 'var(--muted)' }}>Badges</div>
                     </div>
                   </div>

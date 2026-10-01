@@ -37,11 +37,15 @@ EcoLearning Platform is an interactive and engaging educational tool designed fo
 - **Competitive Leaderboards:** Track rankings with filters for "This Week," "This Month," and "All Time."  
 - **Rewarding Profile System:** Showcases earned badges and achievements.  
 - **Smart EcoBot Assistant:** A chatbot offering sustainability tips and answering questions.
+- **Eco Action Missions:** Complete daily and weekly real-world actions, submit short reflections, earn Eco-Points, and build a streak.
 
 ### For Teachers
 - **Live Environmental Dashboard:** Monitor key environmental metrics such as AQI, Temperature, Humidity, and CO₂ levels in real time.  
 - **Teacher-Specific Dashboard:** Monitor student progress and class performance.  
 - **Custom Game Creator:** Easily create quizzes, word puzzles, and drag-and-drop activities through a step-by-step form.
+- **Class Eco Missions:** Assign daily or weekly actions to your class and review completion, reflections, points, and student streaks.
+
+To use missions, register student and teacher accounts with the same school and class name. Choose a username at signup; leaderboard entries display as `BOT <username>` and include only bots from the signed-in student's school and class. Leaderboard points come from mission completions and can be filtered by week, month, or all time. Sign in to a teacher account to assign missions; students sign in to submit a reflection after completing an action. Existing accounts are treated as students and receive a generated username if they do not already have one. Configure a stable `SECRET_KEY` environment variable for the Flask backend so signed-in sessions remain valid across restarts. The profile and student/teacher dashboard routes require sign-in; the profile API returns only the account identified by the signed-in session. Sessions are kept in that browser's local storage, and the app has no administrator role or user-profile admin endpoint.
 
 ---
 

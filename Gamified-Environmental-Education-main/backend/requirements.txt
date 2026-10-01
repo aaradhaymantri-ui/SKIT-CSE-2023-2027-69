@@ -1,5 +1,7 @@
 Flask==2.1.1
 Flask-SQLAlchemy==2.5.1
+SQLAlchemy==1.4.54
+Werkzeug==2.3.7
 Flask-CORS==3.0.9
 requests==2.27.1
 urllib3==1.26.12

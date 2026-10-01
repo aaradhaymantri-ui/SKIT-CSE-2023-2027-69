@@ -1,18 +1,23 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import StudHeader from '../components/StudHeader';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AnimatedBackground from "../components/AnimatedBackground.jsx";
+import MissionBoard from "./MissionBoard";
 
-// Mock User Data
-const user = {
-  name: "Ruchikesha",
-  ecoPoints: 1250,
-  challengesDone: 28,
-  badges: 7,
-  streak: 14,
-  rank: 3,
-  avatar: "https://api.dicebear.com/8.x/initials/svg?seed=Ruchikesha",
-};
+function getDashboardUser() {
+  try {
+    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+    return {
+      name: currentUser?.name || localStorage.getItem("userName") || "Eco Champion",
+      ecoPoints: 0,
+      email: currentUser?.email || "",
+      className: currentUser?.class_name || ""
+    };
+  } catch (error) {
+    console.error("Could not read the signed-in user.", error);
+    return { name: "Eco Champion", ecoPoints: 0, email: "", className: "" };
+  }
+}
 
 // Dashboard Cards
 function DashboardCards({ user }) {
@@ -26,20 +31,17 @@ function DashboardCards({ user }) {
         </div>
         <div className="p-4 rounded-xl text-center" style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(0,0,0,0.06)' }}>
           <p className="text-3xl font-bold" style={{ color: '#0284c7' }}>{user.challengesDone}</p>
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>Challenges Done ✅</p>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>Missions Done ✅</p>
         </div>
         <div className="p-4 rounded-xl text-center" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(0,0,0,0.06)' }}>
-          <p className="text-3xl font-bold" style={{ color: '#ca8a04' }}>{user.badges}</p>
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>Badges Earned 🏆</p>
+          <p className="text-lg font-bold" style={{ color: '#ca8a04' }}>{user.className || "Not set"}</p>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>Class</p>
         </div>
         <div className="p-4 rounded-xl text-center" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(0,0,0,0.06)' }}>
           <p className="text-3xl font-bold" style={{ color: '#ef4444' }}>{user.streak}</p>
           <p className="text-sm" style={{ color: 'var(--muted)' }}>Day Streak 🔥</p>
         </div>
       </div>
-      <p className="text-right text-sm mt-4" style={{ color: 'var(--muted)' }}>
-        Current Rank: <span className="font-semibold" style={{ color: 'var(--primary)' }}>#{user.rank}</span>
-      </p>
     </div>
   );
 }
@@ -87,7 +89,7 @@ function NavigationSection() {
 }
 
 // Dashboard Layout
-function DashboardContent({ user }) {
+function DashboardContent({ user, onStatsChange }) {
   return (
     <div className="max-w-6xl mx-auto px-6 py-6 space-y-6">
       {/* Hero Banner */}
@@ -108,9 +110,9 @@ function DashboardContent({ user }) {
               <div className="font-bold">Complete 1 challenge</div>
             </div>
             <div className="rounded-2xl p-4 text-center" style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.06)' }}>
-              <div className="text-3xl">🏆</div>
-              <div className="text-sm mt-1" style={{ color: 'var(--muted)' }}>Rank</div>
-              <div className="font-bold">#{user.rank}</div>
+              <div className="text-3xl">🏫</div>
+              <div className="text-sm mt-1" style={{ color: 'var(--muted)' }}>Your class</div>
+              <div className="font-bold">{user.className || "Not set"}</div>
             </div>
           </div>
         </div>
@@ -122,6 +124,8 @@ function DashboardContent({ user }) {
           <div className="rounded-3xl p-6" style={{ background: 'var(--panel)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 8px 24px rgba(22,163,74,0.06)' }}>
             <DashboardCards user={user} />
           </div>
+
+          <MissionBoard onStatsChange={onStatsChange} />
 
           {/* Featured Games */}
           <section className="rounded-3xl p-6" style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.06)' }}>
@@ -168,6 +172,57 @@ function DashboardContent({ user }) {
 
 export default function StudentDash() {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [user, setUser] = useState(() => ({
+    ...getDashboardUser(),
+    challengesDone: 0,
+    badges: 0,
+    streak: 0,
+  }));
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("http://localhost:5000/profile", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("authToken") || ""}` }
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (response.status === 401) {
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("currentUser");
+          localStorage.removeItem("userName");
+          navigate("/signin", { replace: true });
+          return null;
+        }
+        if (!response.ok) throw new Error(data.error || "Could not load your account.");
+        return data.user;
+      })
+      .then((account) => {
+        if (cancelled || !account) return;
+        setUser((current) => ({
+          ...current,
+          name: account.name,
+          email: account.email,
+          className: account.class_name || "",
+        }));
+        localStorage.setItem("currentUser", JSON.stringify(account));
+        localStorage.setItem("userName", account.name);
+      })
+      .catch((error) => {
+        console.error("Could not verify the signed-in dashboard user.", error);
+      });
+
+    return () => { cancelled = true; };
+  }, [navigate]);
+
+  const updateMissionStats = useCallback((stats) => {
+    setUser((current) => ({
+      ...current,
+      ecoPoints: stats.points,
+      challengesDone: stats.completedCount,
+      streak: stats.streak,
+    }));
+  }, []);
 
   return (
     <div className="min-h-screen font-sans relative" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
@@ -176,7 +231,7 @@ export default function StudentDash() {
         <StudHeader user={user} activeTab={activeTab} />
         <NavigationSection />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-transparent rounded-t-3xl -mt-4 pt-8" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.02), rgba(6,182,212,0.02))' }}>
-          <DashboardContent user={user} />
+          <DashboardContent user={user} onStatsChange={updateMissionStats} />
         </main>
       </div>
     </div>
