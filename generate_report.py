@@ -136,10 +136,21 @@ def generate_pdf(interval="weekly"):
     total_commits = sum(d["commits"] for d in students.values())
     table_data = [["Student Name", "Commits (%)", "Lines Added", "Lines Deleted", "Net LOC", "Active Days"]]
     if students:
-        for name, data in students.items():
-            pct = (data["commits"] / total_commits * 100) if total_commits > 0 else 0
-            table_data.append([html.escape(name), f"{data['commits']} ({pct:.1f}%)", f"+{data['added']:,}", f"-{data['deleted']:,}", f"{data['added'] - data['deleted']:,}", f"{len(data['active_days'])} days"])
-    else: table_data.append(["No commits found.", "-", "-", "-", "-", "-"])
+    for name, data in students.items():
+        total_loc = data["added"] + data["deleted"]
+
+        if total_loc < 1:
+            continue
+
+        pct = (data["commits"] / total_commits * 100) if total_commits > 0 else 0
+        table_data.append([
+            html.escape(name),
+            f"{data['commits']} ({pct:.1f}%)",
+            f"+{data['added']:,}",
+            f"-{data['deleted']:,}",
+            f"{data['added'] - data['deleted']:,}",
+            f"{len(data['active_days'])} days"
+        ])
     table = Table(table_data, colWidths=[120, 80, 80, 80, 80, 100])
     table.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#1E293B")), ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke), ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('ALIGN', (0, 1), (0, -1), 'LEFT'), ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'), ('FONTSIZE', (0, 0), (-1, -1), 8), ('BOTTOMPADDING', (0, 0), (-1, -1), 3.5), ('TOPPADDING', (0, 0), (-1, -1), 3.5), ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")), ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")])]))
     story.extend([table, Spacer(1, 6), Paragraph("2. Visual Trends & Volume", section_style), create_charts(students, timeline_activity, interval), Spacer(1, 6)])
