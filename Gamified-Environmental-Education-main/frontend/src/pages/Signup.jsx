@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import "../styles/Signup.css";
 import { Link } from "react-router-dom";
 import AnimatedBackground from "../components/AnimatedBackground.jsx";
+import { API_URL } from "../auth/api";
 
 
 const Signup = () => {
@@ -14,6 +15,7 @@ const Signup = () => {
     school: '',
     className: '',
     role: 'student',
+    teacherSignupCode: '',
     password: '',
     confirmPassword: ''
   });
@@ -30,8 +32,9 @@ const handleSubmit = async (e) => {
   }
 
   try {
-    const response = await fetch("http://localhost:5000/signup", {
+    const response = await fetch(`${API_URL}/signup`, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(formData)
     });
@@ -60,7 +63,17 @@ const handleSubmit = async (e) => {
           <option value="student">Student account</option>
           <option value="teacher">Teacher account</option>
         </select>
-        <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} required />
+        {formData.role === 'teacher' && (
+          <input
+            type="password"
+            name="teacherSignupCode"
+            placeholder="Teacher invitation code"
+            value={formData.teacherSignupCode}
+            onChange={handleChange}
+            required
+          />
+        )}
+        <input type="password" name="password" placeholder="Password (8–128 characters)" value={formData.password} onChange={handleChange} minLength="8" maxLength="128" required />
         <input type="password" name="confirmPassword" placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} required />
         <button type="submit">Sign Up</button>
         <p>Already have an account? <Link to="/signin">Sign in</Link></p>

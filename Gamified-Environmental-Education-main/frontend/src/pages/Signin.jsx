@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/Signin.css";
 import AnimatedBackground from "../components/AnimatedBackground.jsx";
+import { useAuth } from "../auth/AuthContext";
 
 const Signin = () => {
   const navigate = useNavigate(); // hook to redirect
+  const { signIn } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -18,26 +20,11 @@ const Signin = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:5000/signin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem("userName", data.user.name);
-        localStorage.setItem("currentUser", JSON.stringify(data.user));
-        localStorage.setItem("authToken", data.token);
-
-        navigate(data.user.role === "teacher" ? "/teacherdashboard" : "/studentdashboard");
-      } else {
-        alert(data.error || "Signin failed");
-      }
+      const user = await signIn(formData.email, formData.password);
+      navigate(user.role === "teacher" ? "/teacherdashboard" : "/studentdashboard");
     } catch (err) {
       console.error("Error during signin:", err);
-      alert("Something went wrong!");
+      alert(err.message || "Something went wrong!");
     }
   };
 

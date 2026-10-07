@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-
-const API_URL = "http://localhost:5000";
+import { API_URL, authFetch } from "../auth/api";
 
 function getCurrentUser() {
   try {
@@ -30,10 +29,7 @@ export default function TeacherMissions() {
     }
     setError("");
     try {
-      const response = await fetch(
-        `${API_URL}/teacher/missions`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem("authToken") || ""}` } }
-      );
+      const response = await authFetch(`${API_URL}/teacher/missions`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not load class progress.");
       setMissions(data.missions);
@@ -56,11 +52,10 @@ export default function TeacherMissions() {
     setNotice("");
     setSaving(true);
     try {
-      const response = await fetch(`${API_URL}/missions`, {
+      const response = await authFetch(`${API_URL}/missions`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("authToken") || ""}`
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ ...form, points: Number(form.points) })
       });

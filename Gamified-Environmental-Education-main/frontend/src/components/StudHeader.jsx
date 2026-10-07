@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 
 const StudHeader = ({ user = { name: "", ecoPoints: 0 }, activeTab }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -12,18 +13,21 @@ const StudHeader = ({ user = { name: "", ecoPoints: 0 }, activeTab }) => {
     }
   });
   const navigate = useNavigate();
+  const { user: authenticatedUser, signOut } = useAuth();
   const displayUser = {
     ...user,
-    name: signedInUser?.name || (localStorage.getItem("authToken") ? user.name : "Guest"),
-    role: signedInUser?.role || "student",
+    name: authenticatedUser?.name || signedInUser?.name || "Guest",
+    role: authenticatedUser?.role || signedInUser?.role || "student",
     ecoPoints: user.ecoPoints || 0,
     badges: user.badges || 0,
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("currentUser");
-    localStorage.removeItem("userName");
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Could not revoke the server session during sign out.", error);
+    }
     navigate('/');
   };
 

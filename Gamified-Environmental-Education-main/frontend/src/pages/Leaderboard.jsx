@@ -2,8 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import StudHeader from "../components/StudHeader";
 import AnimatedBackground from "../components/AnimatedBackground.jsx";
-
-const API_URL = "http://localhost:5000";
+import { API_URL, authFetch } from "../auth/api";
 const periods = [
   { value: "weekly", label: "This Week" },
   { value: "monthly", label: "This Month" },
@@ -11,7 +10,6 @@ const periods = [
 ];
 
 function clearSession() {
-  localStorage.removeItem("authToken");
   localStorage.removeItem("currentUser");
   localStorage.removeItem("userName");
 }
@@ -37,12 +35,9 @@ export default function Leaderboard() {
     setLoading(true);
     setError("");
     try {
-      const headers = {
-        Authorization: `Bearer ${localStorage.getItem("authToken") || ""}`
-      };
       const [profileResponse, leaderboardResponse] = await Promise.all([
-        fetch(`${API_URL}/profile`, { headers }),
-        fetch(`${API_URL}/leaderboard?period=${period}`, { headers })
+        authFetch(`${API_URL}/profile`),
+        authFetch(`${API_URL}/leaderboard?period=${period}`)
       ]);
       const [profileData, leaderboardData] = await Promise.all([
         profileResponse.json(),

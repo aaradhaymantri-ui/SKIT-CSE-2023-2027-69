@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-
-const API_URL = "http://localhost:5000";
+import { API_URL, authFetch } from "../auth/api";
 
 function getCurrentUser() {
   try {
@@ -28,10 +27,7 @@ export default function MissionBoard({ onStatsChange }) {
 
     setError("");
     try {
-      const response = await fetch(
-        `${API_URL}/missions`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem("authToken") || ""}` } }
-      );
+      const response = await authFetch(`${API_URL}/missions`);
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || "Could not load missions.");
@@ -55,11 +51,10 @@ export default function MissionBoard({ onStatsChange }) {
     setError("");
     setSubmittingId(missionId);
     try {
-      const response = await fetch(`${API_URL}/missions/${missionId}/complete`, {
+      const response = await authFetch(`${API_URL}/missions/${missionId}/complete`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("authToken") || ""}`
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           reflection: reflections[missionId] || ""

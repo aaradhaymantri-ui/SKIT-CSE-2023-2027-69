@@ -2,13 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AnimatedBackground from "../components/AnimatedBackground.jsx";
 import StudHeader from "../components/StudHeader";
-
-const API_URL = "http://localhost:5000";
+import { API_URL, authFetch } from "../auth/api";
 const emptyStats = { points: 0, completedCount: 0, streak: 0 };
-
-function getAuthHeaders() {
-  return { Authorization: `Bearer ${localStorage.getItem("authToken") || ""}` };
-}
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -22,12 +17,9 @@ export default function Profile() {
 
     async function loadProfile() {
       try {
-        const response = await fetch(`${API_URL}/profile`, {
-          headers: getAuthHeaders()
-        });
+        const response = await authFetch(`${API_URL}/profile`);
         const data = await response.json();
         if (response.status === 401) {
-          localStorage.removeItem("authToken");
           localStorage.removeItem("currentUser");
           localStorage.removeItem("userName");
           navigate("/signin", { replace: true });
@@ -40,9 +32,7 @@ export default function Profile() {
         setProfile(data.user);
 
         if (data.user.role === "student") {
-          const missionResponse = await fetch(`${API_URL}/missions`, {
-            headers: getAuthHeaders()
-          });
+          const missionResponse = await authFetch(`${API_URL}/missions`);
           const missionData = await missionResponse.json();
           if (!missionResponse.ok) {
             throw new Error(missionData.error || "Could not load your eco progress.");

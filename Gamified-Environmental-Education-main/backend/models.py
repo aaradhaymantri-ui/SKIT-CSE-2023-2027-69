@@ -77,3 +77,14 @@ class MissionCompletion(db.Model):
     __table_args__ = (
         db.UniqueConstraint("mission_id", "student_id", "period_key"),
     )
+
+
+class AuthSession(db.Model):
+    id = db.Column(db.String(64), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    refresh_token_hash = db.Column(db.String(64), nullable=False, unique=True)
+    csrf_token_hash = db.Column(db.String(64), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+    expires_at = db.Column(db.DateTime, nullable=False, index=True)
+    revoked_at = db.Column(db.DateTime, nullable=True)
+    user = db.relationship("User")

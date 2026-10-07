@@ -21,6 +21,7 @@ import TeacherDashboard from "./pages/TeacherDashboard";
 import CreateGame from "./pages/CreateGame";
 import Landing from "./pages/Landing";
 import FloatingChatbot from "./components/FloatingChatbot";
+import { AuthProvider, useAuth } from "./auth/AuthContext";
 
 
 // Component to conditionally render chatbot
@@ -36,17 +37,12 @@ function ConditionalChatbot() {
 }
 
 function ProtectedRoute({ children, role }) {
-  const user = (() => {
-    try {
-      return JSON.parse(localStorage.getItem("currentUser") || "null");
-    } catch (error) {
-      console.error("Could not read the signed-in user.", error);
-      return null;
-    }
-  })();
-  const hasSession = Boolean(localStorage.getItem("authToken") && user?.id);
+  const { user, loading } = useAuth();
 
-  if (!hasSession) {
+  if (loading) {
+    return <p role="status" className="p-8 text-center">Checking your session…</p>;
+  }
+  if (!user?.id) {
     return <Navigate to="/signin" replace />;
   }
   if (role && user.role !== role) {
@@ -57,9 +53,10 @@ function ProtectedRoute({ children, role }) {
 
 function App() {
   return (
-    <Router>
-      <div className="relative">
-        <Routes>
+    <AuthProvider>
+      <Router>
+        <div className="relative">
+          <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/signin" element={<Signin />} />
@@ -79,10 +76,11 @@ function App() {
           <Route path="/games" element={<Games />} />
           <Route path="/teacherdashboard" element={<ProtectedRoute role="teacher"><TeacherDashboard /></ProtectedRoute>} />
           <Route path="/creategame" element={<CreateGame />} />
-        </Routes>
-        <ConditionalChatbot />
-      </div>
-    </Router>
+          </Routes>
+          <ConditionalChatbot />
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 

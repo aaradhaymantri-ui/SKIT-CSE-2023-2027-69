@@ -3,6 +3,7 @@ import StudHeader from '../components/StudHeader';
 import { Link, useNavigate } from "react-router-dom";
 import AnimatedBackground from "../components/AnimatedBackground.jsx";
 import MissionBoard from "./MissionBoard";
+import { API_URL, authFetch } from "../auth/api";
 
 function getDashboardUser() {
   try {
@@ -182,13 +183,10 @@ export default function StudentDash() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("http://localhost:5000/profile", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("authToken") || ""}` }
-    })
+    authFetch(`${API_URL}/profile`)
       .then(async (response) => {
         const data = await response.json();
         if (response.status === 401) {
-          localStorage.removeItem("authToken");
           localStorage.removeItem("currentUser");
           localStorage.removeItem("userName");
           navigate("/signin", { replace: true });
