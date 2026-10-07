@@ -52,12 +52,10 @@ def get_git_metrics(interval="weekly"):
         raw_output = subprocess.check_output(git_args, encoding='utf-8', errors='replace')
     except subprocess.CalledProcessError:
         return None, None, None, scope_title
-
     students = defaultdict(lambda: {"commits": 0, "added": 0, "deleted": 0, "active_days": set()})
     timeline_activity = defaultdict(lambda: defaultdict(int))
     student_logs = defaultdict(list)
     current_author, current_date_str = None, None
-
     for line in raw_output.strip().split('\n'):
         line = line.strip()
         if not line:
@@ -89,7 +87,6 @@ def get_git_metrics(interval="weekly"):
             if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
                 students[current_author]["added"] += int(parts[0])
                 students[current_author]["deleted"] += int(parts[1])
-
     return students, timeline_activity, student_logs, scope_title
 
 def create_charts(students, timeline_activity, interval):
@@ -106,7 +103,6 @@ def create_charts(students, timeline_activity, interval):
         ax1.legend(fontsize=8)
     else:
         ax1.text(0.5, 0.5, "No commits found", ha='center', va='center')
-
     if authors:
         net_loc = [students[a]["added"] - students[a]["deleted"] for a in authors]
         ax2.bar(authors, net_loc, color=['#4E79A7', '#F28E2B', '#E15759', '#76B7B2', '#59A14F'][:len(authors)], width=0.45)
@@ -115,7 +111,6 @@ def create_charts(students, timeline_activity, interval):
         ax2.grid(axis='y', linestyle='--', alpha=0.5)
     else:
         ax2.text(0.5, 0.5, "No LOC changes", ha='center', va='center')
-
     plt.tight_layout()
     img_buffer = io.BytesIO()
     plt.savefig(img_buffer, format='png', dpi=200)
@@ -128,6 +123,15 @@ def generate_pdf(interval="weekly"):
     students, timeline_activity, student_logs, scope_title = get_git_metrics(interval)
     if students is None:
         return
+
+    valid_authors = {name for name, data in students.items() if data["added"] + data["deleted"] > 1}
+    students = {name: data for name, data in students.items() if name in valid_authors}
+    student_logs = {name: logs for name, logs in student_logs.items() if name in valid_authors}
+    timeline_activity = {
+        period: {name: count for name, count in authors.items() if name in valid_authors}
+        for period, authors in timeline_activity.items()
+    }
+    timeline_activity = {period: authors for period, authors in timeline_activity.items() if authors}
 
     date_stamp = datetime.date.today().strftime("%Y-%m-%d")
     report_title = "Weekly Progress Report (Form-3)" if interval == "weekly" else ("Monthly Progress Report (Form-3)" if interval == "monthly" else "Final Project Evaluation Report")
@@ -143,7 +147,6 @@ def generate_pdf(interval="weekly"):
 
     doc = SimpleDocTemplate(doc_name, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=30, bottomMargin=30)
     styles = getSampleStyleSheet()
-
     college_style = ParagraphStyle('C', parent=styles['Heading1'], fontSize=13.5, leading=17, textColor=colors.HexColor("#0F172A"), alignment=1, spaceAfter=2)
     dept_style = ParagraphStyle('D', parent=styles['Normal'], fontSize=9.5, leading=13, textColor=colors.HexColor("#475569"), alignment=1, spaceAfter=6)
     title_style = ParagraphStyle('T', parent=styles['Heading2'], fontSize=13, leading=17, textColor=colors.HexColor("#1A365D"), alignment=1, spaceAfter=5)
@@ -171,10 +174,8 @@ def generate_pdf(interval="weekly"):
     if students:
         for name, data in students.items():
             total_loc = data["added"] + data["deleted"]
-
-            if total_loc < 1:
+            if total_loc <= 1:
                 continue
-
             pct = (data["commits"] / total_commits * 100) if total_commits > 0 else 0
             table_data.append([
                 html.escape(name),
@@ -197,9 +198,10 @@ def generate_pdf(interval="weekly"):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
         ('TOPPADDING', (0, 0), (-1, -1), 5),
     ]))
-    story.extend([table, Spacer(1, 6), Paragraph("2. Visual Trends & Volume", section_style), create_charts(students, timeline_activity, interval), Spacer(1, 6)])
 
+    story.extend([table, Spacer(1, 6), Paragraph("2. Visual Trends & Volume", section_style), create_charts(students, timeline_activity, interval), Spacer(1, 6)])
     story.append(Paragraph(f"3. Detailed Commit Logs & Mentor Evaluation ({interval.capitalize()})", section_style))
+
     if not student_logs:
         story.append(Paragraph("<i>No commit logs found.</i>", styles['Normal']))
     else:
@@ -215,7 +217,6 @@ def generate_pdf(interval="weekly"):
                     Paragraph(html.escape(first_msg) if first_msg else "(No message)", msg_style),
                     Paragraph("", meta_cell_style),
                 ])
-
                 for d, s, m in logs[1:]:
                     log_table_data.append([
                         Paragraph(d, meta_cell_style),
@@ -248,6 +249,7 @@ def generate_pdf(interval="weekly"):
         Spacer(1, 6),
         Paragraph("<b>Signature:</b> ___________________________", sig_block_style),
     ]
+
     coord_cell = [
         Paragraph("<b>Name:</b> ___________________________", sig_block_style),
         Paragraph("<b>Designation:</b> Lab Coordinator", sig_block_style),
@@ -261,8 +263,8 @@ def generate_pdf(interval="weekly"):
         ('LEFTPADDING', (0, 0), (0, -1), 0),
         ('LEFTPADDING', (1, 0), (1, -1), 40),
     ]))
-    story.append(KeepTogether(sig_table))
 
+    story.append(KeepTogether(sig_table))
     doc.build(story)
     print(f"\n[SUCCESS] Generated: {doc_name}")
 
