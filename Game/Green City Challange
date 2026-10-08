@@ -1,0 +1,195 @@
+# EcoQuest: Green City Challenge
+# A simple educational mini-game about environmental choices.
+# Author: EcoQuest Team
+
+import random
+
+QUESTIONS = [
+    {
+        "question": "Which action saves the most electricity at home?",
+        "options": [
+            "Leaving lights on",
+            "Turning off unused lights",
+            "Using more appliances",
+            "Keeping the TV running"
+        ],
+        "answer": 2,
+        "points": 10
+    },
+    {
+        "question": "Which waste should usually go into a compost bin?",
+        "options": [
+            "Plastic bottles",
+            "Glass",
+            "Fruit and vegetable scraps",
+            "Metal cans"
+        ],
+        "answer": 3,
+        "points": 10
+    },
+    {
+        "question": "Which mode of transport generally produces the least pollution?",
+        "options": [
+            "Walking",
+            "Petrol car",
+            "Motorcycle",
+            "Diesel bus"
+        ],
+        "answer": 1,
+        "points": 10
+    },
+    {
+        "question": "What is the main purpose of planting trees?",
+        "options": [
+            "Increase pollution",
+            "Absorb carbon dioxide",
+            "Increase plastic waste",
+            "Waste water"
+        ],
+        "answer": 2,
+        "points": 10
+    },
+    {
+        "question": "Which item is commonly recyclable?",
+        "options": [
+            "Paper",
+            "Used tissue",
+            "Food scraps",
+            "Dirty medical waste"
+        ],
+        "answer": 1,
+        "points": 10
+    },
+    {
+        "question": "What does the '3Rs' environmental principle stand for?",
+        "options": [
+            "Reduce, Reuse, Recycle",
+            "Run, Rest, Repeat",
+            "Remove, Repair, Run",
+            "Recycle, Remove, Replace"
+        ],
+        "answer": 1,
+        "points": 10
+    },
+    {
+        "question": "Which source is renewable?",
+        "options": [
+            "Coal",
+            "Petroleum",
+            "Solar energy",
+            "Natural gas"
+        ],
+        "answer": 3,
+        "points": 10
+    },
+    {
+        "question": "What is one effective way to conserve water?",
+        "options": [
+            "Leave taps running",
+            "Fix leaking taps",
+            "Take longer showers",
+            "Waste clean water"
+        ],
+        "answer": 2,
+        "points": 10
+    }
+]
+
+
+def show_title():
+    print("=" * 55)
+    print("              🌱 ECOQUEST")
+    print("          GREEN CITY CHALLENGE")
+    print("=" * 55)
+    print("Test your environmental knowledge!")
+    print("Answer questions and earn Eco Points.\n")
+
+
+def ask_question(question_data, number):
+    print(f"\nQuestion {number}")
+    print("-" * 40)
+    print(question_data["question"])
+
+    for i, option in enumerate(question_data["options"], start=1):
+        print(f"{i}. {option}")
+
+    while True:
+        try:
+            choice = int(input("Enter your answer (1-4): "))
+
+            if 1 <= choice <= 4:
+                break
+
+            print("Please enter a number from 1 to 4.")
+
+        except ValueError:
+            print("Please enter a valid number.")
+
+    if choice == question_data["answer"]:
+        print("✅ Correct! +10 Eco Points")
+        return question_data["points"]
+
+    correct = question_data["options"][question_data["answer"] - 1]
+    print(f"❌ Incorrect!")
+    print(f"Correct answer: {correct}")
+
+    return 0
+
+
+def get_rank(score, total):
+    percentage = (score / total) * 100
+
+    if percentage >= 90:
+        return "🌍 Eco Champion"
+    elif percentage >= 70:
+        return "🌳 Green Guardian"
+    elif percentage >= 50:
+        return "♻️ Eco Explorer"
+    else:
+        return "🌱 Eco Beginner"
+
+
+def play_game():
+    show_title()
+
+    questions = QUESTIONS.copy()
+    random.shuffle(questions)
+
+    score = 0
+    total_points = len(questions) * 10
+
+    for number, question in enumerate(questions, start=1):
+        score += ask_question(question, number)
+
+    print("\n" + "=" * 55)
+    print("                 GAME OVER")
+    print("=" * 55)
+
+    percentage = (score / total_points) * 100
+    rank = get_rank(score, total_points)
+
+    print(f"Eco Points : {score}/{total_points}")
+    print(f"Score      : {percentage:.1f}%")
+    print(f"Rank       : {rank}")
+
+    if percentage >= 70:
+        print("\n🌟 Great job! You're helping build a greener future!")
+    else:
+        print("\n🌱 Keep learning and make greener choices!")
+
+    print("=" * 55)
+
+
+def main():
+    while True:
+        play_game()
+
+        again = input("\nPlay again? (y/n): ").strip().lower()
+
+        if again != "y":
+            print("\nThanks for playing EcoQuest! 🌎")
+            break
+
+
+if __name__ == "__main__":
+    main()
