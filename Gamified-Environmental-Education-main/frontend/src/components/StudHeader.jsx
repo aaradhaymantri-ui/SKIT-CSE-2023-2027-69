@@ -49,22 +49,22 @@ const StudHeader = ({ user = { name: "", ecoPoints: 0 }, activeTab }) => {
           
           {/* Profile Dropdown */}
           <div className="relative">
-            <div 
+            <button
+              type="button"
+              aria-label="Toggle profile menu"
+              aria-expanded={showProfileDropdown}
               className="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-lg cursor-pointer hover:scale-105 transition-transform duration-200" 
               style={{ background: 'var(--primary)' }}
-              onMouseEnter={() => setShowProfileDropdown(true)}
-              onMouseLeave={() => setShowProfileDropdown(false)}
+              onClick={() => setShowProfileDropdown((isOpen) => !isOpen)}
             >
               {displayUser.name ? displayUser.name.charAt(0) : "?"}
-            </div>
+            </button>
 
             {/* Dropdown Menu */}
             {showProfileDropdown && (
               <div 
                 className="absolute right-0 top-12 w-64 rounded-2xl shadow-2xl border z-50 overflow-hidden"
                 style={{ background: 'var(--panel)', borderColor: 'rgba(22,163,74,0.2)' }}
-                onMouseEnter={() => setShowProfileDropdown(true)}
-                onMouseLeave={() => setShowProfileDropdown(false)}
               >
                 {/* Profile Header */}
                 <div className="p-4" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(6,182,212,0.1))' }}>

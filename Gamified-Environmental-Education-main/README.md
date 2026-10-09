@@ -67,6 +67,8 @@ Run backend security tests from `backend`:
 python -m unittest discover -s tests -v
 ```
 
+Use the [security test tracker](./docs/SECURITY_TEST_TRACKER.md) to record automated results and manual/browser checks over time.
+
 ---
 
 ## 🗓️ Six-Week Delivery Plan

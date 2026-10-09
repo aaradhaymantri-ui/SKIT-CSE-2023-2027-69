@@ -11,7 +11,7 @@ Use this as the team's running record. Update the status, completion estimate, s
 
 | Sprint | Dates | Focus | Status | Progress | Shipped outcomes / evidence | Blockers |
 |---|---|---|---|---:|---|---|
-| 1 | Oct 7–13 | Security baseline and hardening | In progress | 80% | Added production secret/CORS requirements, teacher invite-code gate, API security headers, safer upstream errors, short-lived JWTs, rotating HttpOnly refresh cookies, CSRF checks, and 18 backend security tests; frontend production build passed. | Finish broader security review and deployment configuration verification. |
+| 1 | Oct 7–13 | Security baseline and hardening | In progress | 80% | Added production secret/CORS requirements, teacher invite-code gate, API security headers, safer upstream errors, short-lived JWTs, rotating HttpOnly refresh cookies, CSRF checks, and 20 backend security tests; frontend production build passed. | Finish broader security review and deployment configuration verification. |
 | 2 | Oct 14–20 | Mission submission and teacher review | Not started | 0% | — | — |
 | 3 | Oct 21–27 | Reliable points, streaks, and badges | Not started | 0% | — | — |
 | 4 | Oct 28–Nov 3 | Teacher analytics and reporting | Not started | 0% | — | — |
@@ -19,6 +19,8 @@ Use this as the team's running record. Update the status, completion estimate, s
 | 6 | Nov 11–17 | Quality, release readiness, and demo | Not started | 0% | — | — |
 
 **Overall progress:** completed sprints ÷ 6. Record this alongside the board at each review; use acceptance checks below to decide when a sprint counts as completed.
+
+Record security test runs and manual/browser verification in the [security test tracker](./SECURITY_TEST_TRACKER.md); update the sprint evidence with a link to the relevant run.
 
 ### Review routine
 
