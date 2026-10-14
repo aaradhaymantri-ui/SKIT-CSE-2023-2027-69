@@ -37,7 +37,7 @@ const StudHeader = ({ user = { name: "", ecoPoints: 0 }, activeTab }) => {
         <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity duration-200 cursor-pointer">
           <div className="text-3xl animate-pulse">🌍</div>
           <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 via-emerald-500 to-teal-500 bg-clip-text text-transparent">
-            Eco Champs
+            Eco Quest
           </h1>
           <div className="text-2xl">🏆</div>
         </Link>

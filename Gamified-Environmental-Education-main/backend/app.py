@@ -5,6 +5,7 @@ from datetime import timezone
 import hashlib
 import hmac
 import os
+import re
 import secrets
 import urllib.parse
 
@@ -243,8 +244,7 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
     user_columns = {column["name"] for column in inspect(db.engine).get_columns(User.__tablename__)}
-    if "role" not in user_columns or "username" not in user_columns:
-        user_table = db.engine.dialect.identifier_preparer.quote(User.__tablename__)
+    user_table = db.engine.dialect.identifier_preparer.quote(User.__tablename__)
     if "role" not in user_columns:
         db.session.execute(text(
             f"ALTER TABLE {user_table} ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'student'"
@@ -253,7 +253,7 @@ with app.app_context():
         db.session.execute(text(
             f"ALTER TABLE {user_table} ADD COLUMN username VARCHAR(50)"
         ))
-        db.session.commit()
+    db.session.commit()
     for legacy_user in User.query.filter(
         (User.username.is_(None)) | (User.username == "")
     ).all():
@@ -313,23 +313,57 @@ def signup():
 
     name = data.get("name")
     username = data.get("username")
+    phone = data.get("phone")
     email = data.get("email")
     class_name = data.get("className")
     school = data.get("school")
     role = data.get("role", "student")
     if not isinstance(name, str) or not name.strip():
         return jsonify({"error": "Name is required"}), 400
+    name = " ".join(name.split())
+    if len(name) > 100 or not re.fullmatch(
+        r"[^\W\d_]+(?:[ '\u2019.-][^\W\d_]+)*", name, re.UNICODE
+    ):
+        return jsonify({"error": "Enter a valid name using letters and name separators only"}), 400
     if not isinstance(username, str) or not 3 <= len(username.strip()) <= 30:
         return jsonify({"error": "Username must be between 3 and 30 characters"}), 400
     username = username.strip().lower()
-    if not all(character.isalnum() or character in "_-" for character in username):
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", username):
         return jsonify({"error": "Username may only contain letters, numbers, underscores, and hyphens"}), 400
+    if not isinstance(phone, str) or not re.fullmatch(r"[0-9]{10}", phone):
+        return jsonify({"error": "Phone number must contain exactly 10 digits"}), 400
     if not isinstance(email, str) or not email.strip():
         return jsonify({"error": "Email is required"}), 400
+    email = email.strip().lower()
+    email_pattern = (
+        r"[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+"
+        r"(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*@"
+        r"(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+"
+        r"[A-Za-z](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    )
+    if len(email) > 100 or not re.fullmatch(email_pattern, email):
+        return jsonify({"error": "Enter a valid email address"}), 400
     if not isinstance(class_name, str) or not class_name.strip():
         return jsonify({"error": "Class is required"}), 400
+    class_name = class_name.strip()
+    if len(class_name) > 50:
+        return jsonify({"error": "Class must be 50 characters or fewer"}), 400
     if not isinstance(school, str) or not school.strip():
         return jsonify({"error": "School is required"}), 400
+    school = school.strip()
+    if len(school) > 100:
+        return jsonify({"error": "School must be 100 characters or fewer"}), 400
+    roll_number = data.get("rollNumber")
+    if role == "student" and (
+        not isinstance(roll_number, str) or not roll_number.strip()
+    ):
+        return jsonify({"error": "Roll number is required for student accounts"}), 400
+    if roll_number is not None and not isinstance(roll_number, str):
+        return jsonify({"error": "Roll number must be text"}), 400
+    if isinstance(roll_number, str):
+        roll_number = roll_number.strip() or None
+        if roll_number and len(roll_number) > 50:
+            return jsonify({"error": "Roll number must be 50 characters or fewer"}), 400
     if role not in ("student", "teacher"):
         return jsonify({"error": "Role must be student or teacher"}), 400
     if role == "teacher":
@@ -341,34 +375,33 @@ def signup():
             or not hmac.compare_digest(supplied_code, configured_code)
         ):
             return jsonify({"error": "A valid teacher invitation code is required"}), 403
-    email = email.strip().lower()
-
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "Email already exists"}), 409
     if User.query.filter(func.lower(User.username) == username).first():
         return jsonify({"error": "Username already exists"}), 409
 
     new_user = User(
-        name=name.strip(),
+        name=name,
         username=username,
-        phone=data.get('phone'),
+        phone=phone,
         email=email,
-        roll_number=data.get('rollNumber'),
-        school=school.strip(),
-        class_name=class_name.strip(),
-        role=role
+        roll_number=roll_number,
+        school=school,
+        class_name=class_name,
+        role=role,
     )
     
     # Ensure password is provided before hashing
     password = data.get('password')
     if not isinstance(password, str) or not 8 <= len(password) <= 128:
         return jsonify({"error": "Password must be between 8 and 128 characters"}), 400
-        
     new_user.set_password(password)
-
     db.session.add(new_user)
     db.session.commit()
-    return jsonify({"message": "Signup successful", "user": new_user.to_dict()}), 201
+    return jsonify({
+        "message": "Signup successful.",
+        "user": new_user.to_dict(),
+    }), 201
 
 
 @app.route('/signin', methods=['POST'])

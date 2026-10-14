@@ -349,6 +349,7 @@ class SecurityTests(unittest.TestCase):
         payload = {
             "name": "New Teacher",
             "username": "newteacher",
+            "phone": "9876543210",
             "email": "newteacher@example.test",
             "className": "Class 1",
             "school": "School A",
@@ -364,6 +365,7 @@ class SecurityTests(unittest.TestCase):
         payload = {
             "name": "New Teacher",
             "username": "newteacher",
+            "phone": "9876543210",
             "email": "newteacher@example.test",
             "className": "Class 1",
             "school": "School A",
@@ -375,10 +377,31 @@ class SecurityTests(unittest.TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.get_json()["user"]["role"], "teacher")
 
+    def test_signup_accepts_valid_email_without_email_delivery_configuration(self):
+        response = self.client.post("/signup", json={
+            "name": "New Student",
+            "username": "newstudent",
+            "phone": "9876543210",
+            "email": "newstudent@example.test",
+            "rollNumber": "12345",
+            "className": "Class 1",
+            "school": "School A",
+            "password": "a secure password",
+        })
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.get_json()["message"], "Signup successful.")
+        signin = self.client.post(
+            "/signin",
+            headers={"Origin": "http://localhost:5173"},
+            json={"email": "newstudent@example.test", "password": "a secure password"},
+        )
+        self.assertEqual(signin.status_code, 200)
+
     def test_signup_rejects_short_passwords(self):
         response = self.client.post("/signup", json={
             "name": "New Student",
             "username": "newstudent",
+            "phone": "9876543210",
             "email": "newstudent@example.test",
             "className": "Class 1",
             "school": "School A",
@@ -386,6 +409,114 @@ class SecurityTests(unittest.TestCase):
             "password": "short",
         })
         self.assertEqual(response.status_code, 400)
+
+    def test_signup_rejects_numeric_names(self):
+        response = self.client.post("/signup", json={
+            "name": "123456",
+            "username": "newstudent",
+            "phone": "9876543210",
+            "email": "newstudent@example.test",
+            "className": "Class 1",
+            "school": "School A",
+            "password": "a secure password",
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("valid name", response.get_json()["error"])
+
+    def test_signup_rejects_phone_numbers_that_are_not_exactly_ten_digits(self):
+        for phone in ("12345678", "12345678901", "12345abcde"):
+            with self.subTest(phone=phone):
+                response = self.client.post("/signup", json={
+                    "name": "New Student",
+                    "username": "newstudent",
+                    "phone": phone,
+                    "email": "newstudent@example.test",
+                    "className": "Class 1",
+                    "school": "School A",
+                    "password": "a secure password",
+                })
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("exactly 10 digits", response.get_json()["error"])
+
+    def test_signup_rejects_malformed_email_addresses(self):
+        for email in (
+            "not-an-email",
+            "person..name@example.com",
+            "person@example..com",
+            ".person@example.com",
+            "person.@example.com",
+            "person@-example.com",
+        ):
+            with self.subTest(email=email):
+                response = self.client.post("/signup", json={
+                    "name": "New Student",
+                    "username": "newstudent",
+                    "phone": "9876543210",
+                    "email": email,
+                    "className": "Class 1",
+                    "school": "School A",
+                    "password": "a secure password",
+                })
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("valid email", response.get_json()["error"])
+
+    def test_signup_accepts_standard_email_addresses(self):
+        response = self.client.post("/signup", json={
+            "name": "New Student",
+            "username": "newstudent",
+            "phone": "9876543210",
+            "email": "first.last+tag@example-domain.com",
+            "rollNumber": "12345",
+            "className": "Class 1",
+            "school": "School A",
+            "password": "a secure password",
+        })
+        self.assertEqual(response.status_code, 201)
+
+    def test_signup_rejects_unicode_usernames_and_missing_student_roll_number(self):
+        payload = {
+            "name": "New Student",
+            "username": "newstudent",
+            "phone": "9876543210",
+            "email": "newstudent@example.test",
+            "rollNumber": "12345",
+            "className": "Class 1",
+            "school": "School A",
+            "password": "a secure password",
+        }
+        unicode_username = {**payload, "username": "élève"}
+        response = self.client.post("/signup", json=unicode_username)
+        self.assertEqual(response.status_code, 400)
+
+        missing_roll_number = {**payload, "rollNumber": ""}
+        response = self.client.post("/signup", json=missing_roll_number)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Roll number", response.get_json()["error"])
+
+    def test_signup_rejects_values_longer_than_database_field_limits(self):
+        base_payload = {
+            "name": "New Student",
+            "username": "newstudent",
+            "phone": "9876543210",
+            "email": "newstudent@example.test",
+            "rollNumber": "12345",
+            "className": "Class 1",
+            "school": "School A",
+            "password": "a secure password",
+        }
+        cases = (
+            ("email", "a" * 90 + "@example.com"),
+            ("rollNumber", "r" * 51),
+            ("className", "c" * 51),
+            ("school", "s" * 101),
+        )
+        for field, value in cases:
+            with self.subTest(field=field):
+                response = self.client.post(
+                    "/signup",
+                    json={**base_payload, "username": "newstudent", field: value},
+                )
+                self.assertEqual(response.status_code, 400)
 
     def test_signup_rejects_non_object_json(self):
         response = self.client.post("/signup", json=["not", "an", "object"])
