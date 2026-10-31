@@ -3,15 +3,57 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from models import db, User
 import os
+import re
 import requests
 import urllib.parse
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
+def format_database_url(url: str) -> str:
+    """Format and sanitize database URL for SQLAlchemy and Supabase PostgreSQL."""
+    if not url:
+        return url
+    url = url.strip()
+
+    # Pattern to extract credentials, handling bracketed passwords [mypassword] and special chars like '@'
+    pattern = r'^(postgresql(?:\+psycopg2)?|postgres)://([^:]+):(?:\[(.*?)\]|(.*?))@([^/@]+(?::\d+)?)(/.*)?$'
+    match = re.match(pattern, url)
+    if match:
+        _, user, bp, np, host, path = match.groups()
+        password = bp if bp is not None else (np or '')
+        # URL encode password to handle special characters like '@', '#', etc.
+        encoded_password = urllib.parse.quote_plus(password)
+        clean_path = path or '/postgres'
+        return f'postgresql+psycopg2://{user}:{encoded_password}@{host}{clean_path}'
+
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif url.startswith("postgresql://") and not url.startswith("postgresql+"):
+        url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+    return url
+
 # --- DATABASE CONFIGURATION ---
 default_sqlite_uri = 'sqlite:///users.db'
-db_uri = os.getenv('DATABASE_URL', default_sqlite_uri)
+raw_db_uri = os.getenv('DATABASE_URL', '').strip()
+
+# Check if a custom DATABASE_URL is configured (e.g., Supabase PostgreSQL)
+if raw_db_uri and 'YOUR_PASSWORD' not in raw_db_uri and 'YOUR_PROJECT_ID' not in raw_db_uri:
+    db_uri = format_database_url(raw_db_uri)
+    print(f"[*] Configured Supabase / PostgreSQL database.")
+else:
+    db_uri = default_sqlite_uri
+    if raw_db_uri:
+        print("[*] Notice: DATABASE_URL contains placeholder values. Falling back to local SQLite.")
+        print("[*] To connect to Supabase, update DATABASE_URL in your .env with your actual Supabase credentials.")
+    else:
+        print("[*] No DATABASE_URL specified. Using default local SQLite database.")
+
 app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -20,7 +62,12 @@ db.init_app(app)
 
 # Create database tables inside the application context
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
+        print("[*] Database tables verified/created successfully.")
+    except Exception as e:
+        print(f"[*] Database initialization notice: {e}")
+        print("[*] If using Supabase, please verify network connectivity and that your DATABASE_URL in .env is valid.")
 
 # --- CONFIGURATION ---
 LAT = 12.9716   # Bangalore
@@ -58,6 +105,17 @@ def dashboard():
         return jsonify({"error": "Failed to retrieve data", "message": str(e)})
 
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint that reports database connection status."""
+    is_supabase = "postgresql" in app.config['SQLALCHEMY_DATABASE_URI']
+    return jsonify({
+        "status": "healthy",
+        "database_type": "Supabase (PostgreSQL)" if is_supabase else "SQLite (Local)",
+        "configured": is_supabase
+    }), 200
+
+
 @app.route('/signup', methods=['POST'])
 def signup():
     data = request.json
@@ -76,12 +134,12 @@ def signup():
         school=data.get('school'),
         class_name=data.get('className')
     )
-    
+
     # Ensure password is provided before hashing
     password = data.get('password')
     if not password:
         return jsonify({"error": "Password is required"}), 400
-        
+
     new_user.set_password(password)
 
     db.session.add(new_user)
@@ -99,7 +157,7 @@ def signin():
 
     if user and user.check_password(data.get("password")):
         return jsonify({"message": "Signin successful", "user": user.to_dict()}), 200
-    
+
     return jsonify({"error": "Invalid email or password"}), 401
 
 
@@ -108,11 +166,11 @@ def profile():
     data = request.json
     if not data or not data.get("email"):
         return jsonify({"error": "Email is required"}), 400
-        
+
     user = User.query.filter_by(email=data.get("email")).first()
     if not user:
         return jsonify({"error": "User not found"}), 404
-        
+
     return jsonify({"user": user.to_dict()}), 200
 
 
