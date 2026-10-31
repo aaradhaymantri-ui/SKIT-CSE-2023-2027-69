@@ -10,3 +10,5 @@ node_modules/
 dist/
 media/
 staticfiles/
+/Gamified-Environmental-Education-main/backend/users.db
+/Gamified-Environmental-Education-main/frontend/dist/

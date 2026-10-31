@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import TeacherMissions from "./TeacherMissions";
 
 /**
  * @typedef {Object} Student
@@ -173,6 +174,16 @@ const TeacherDashboard = () => {
           >
             🎮 Games
           </button>
+          <button
+            className={`px-4 py-2 rounded-md font-semibold border transition-all duration-300 ${
+              activeTab === "missions"
+                ? "bg-eco-primary text-white scale-105 shadow-lg"
+                : "bg-white text-eco-primary hover:bg-eco-primary hover:text-white"
+            }`}
+            onClick={() => setActiveTab("missions")}
+          >
+            🌱 Eco Missions
+          </button>
         </div>
 
         <input
@@ -289,6 +300,7 @@ const TeacherDashboard = () => {
             </table>
           </div>
         )}
+        {activeTab === "missions" && <TeacherMissions />}
       </div>
 
       {/* Extra Features */}

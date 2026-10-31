@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 
 import Signin from "./pages/Signin";
 import Signup from "./pages/Signup";
@@ -21,6 +21,7 @@ import TeacherDashboard from "./pages/TeacherDashboard";
 import CreateGame from "./pages/CreateGame";
 import Landing from "./pages/Landing";
 import FloatingChatbot from "./components/FloatingChatbot";
+import { AuthProvider, useAuth } from "./auth/AuthContext";
 
 
 // Component to conditionally render chatbot
@@ -35,18 +36,34 @@ function ConditionalChatbot() {
   return <FloatingChatbot />;
 }
 
+function ProtectedRoute({ children, role }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <p role="status" className="p-8 text-center">Checking your session…</p>;
+  }
+  if (!user?.id) {
+    return <Navigate to="/signin" replace />;
+  }
+  if (role && user.role !== role) {
+    return <Navigate to={user.role === "teacher" ? "/teacherdashboard" : "/studentdashboard"} replace />;
+  }
+  return children;
+}
+
 function App() {
   return (
-    <Router>
-      <div className="relative">
-        <Routes>
+    <AuthProvider>
+      <Router>
+        <div className="relative">
+          <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/signin" element={<Signin />} />
-          <Route path="/studentdashboard" element={<StudentDash />} />
+          <Route path="/studentdashboard" element={<ProtectedRoute role="student"><StudentDash /></ProtectedRoute>} />
           <Route path="/livedashboard" element={<Dashboard />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/leaderboard" element={<ProtectedRoute role="student"><Leaderboard /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/quiz" element={<Quiz />} />
           <Route path="/draganddrop" element={<DragAndDrop />} />  
           <Route path="/memorymatch" element={<MemoryMatch />} />
@@ -57,12 +74,13 @@ function App() {
           <Route path="/learntopics" element={<FlashCardPage />} />
           <Route path="/deck/:topic" element={<Deck />} />
           <Route path="/games" element={<Games />} />
-          <Route path="/teacherdashboard" element={<TeacherDashboard />} />
+          <Route path="/teacherdashboard" element={<ProtectedRoute role="teacher"><TeacherDashboard /></ProtectedRoute>} />
           <Route path="/creategame" element={<CreateGame />} />
-        </Routes>
-        <ConditionalChatbot />
-      </div>
-    </Router>
+          </Routes>
+          <ConditionalChatbot />
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 

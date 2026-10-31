@@ -1,0 +1,220 @@
+
+"""
+EcoQuest - Gamified Educational System
+Module: Student Achievement Badge System
+Purpose: Reward students for eco-friendly learning activities.
+"""
+
+from dataclasses import dataclass, asdict
+from typing import List
+import json
+import os
+
+DATA_FILE = "ecoquest_progress.json"
+
+
+@dataclass
+class Badge:
+    name: str
+    description: str
+    icon: str
+    required_xp: int
+    required_challenges: int
+
+
+BADGES = [
+    Badge("Eco Beginner", "Complete your first eco challenge.",
+         "🌱", 50, 1),
+    Badge("Water Guardian", "Learn water conservation.",
+         "💧", 100, 3),
+    Badge("Recycling Hero", "Promote recycling practices.",
+         "♻️", 200, 5),
+    Badge("Energy Saver", "Learn energy-saving methods.",
+         "⚡", 300, 7),
+    Badge("Green Leader", "Become a sustainability leader.",
+         "🌳", 500, 10),
+    Badge("Eco Champion", "Reach the highest achievement.",
+         "🌍", 1000, 20),
+]
+
+
+class EcoQuestBadgeSystem:
+    """Manage student XP, challenges, and achievement badges."""
+
+    def __init__(self, student_name: str):
+        self.student_name = student_name
+        self.xp = 0
+        self.completed_challenges = 0
+        self.unlocked_badges: List[str] = []
+
+    def complete_challenge(self, xp_reward: int = 50):
+        """Record a completed challenge and award XP."""
+        if not isinstance(xp_reward, int) or xp_reward <= 0:
+            raise ValueError("XP reward must be a positive integer.")
+
+        self.xp += xp_reward
+        self.completed_challenges += 1
+
+        newly_unlocked = self.check_badges()
+
+        print(f"Challenge completed by {self.student_name}!")
+        print(f"XP earned: {xp_reward}")
+        print(f"Total XP: {self.xp}")
+
+        if newly_unlocked:
+            for badge in newly_unlocked:
+                print(f"Badge unlocked: {badge}")
+
+        return newly_unlocked
+
+    def check_badges(self):
+        """Unlock badges when student requirements are met."""
+        newly_unlocked = []
+
+        for badge in BADGES:
+            eligible = (
+                self.xp >= badge.required_xp
+                and self.completed_challenges
+                >= badge.required_challenges
+            )
+
+            if eligible and badge.name not in self.unlocked_badges:
+                self.unlocked_badges.append(badge.name)
+                newly_unlocked.append(badge.name)
+
+        return newly_unlocked
+
+    def get_progress(self):
+        """Return progress toward each achievement."""
+        progress = []
+
+        for badge in BADGES:
+            xp_progress = min(
+                self.xp / badge.required_xp, 1
+            ) if badge.required_xp else 1
+
+            challenge_progress = min(
+                self.completed_challenges
+                / badge.required_challenges, 1
+            ) if badge.required_challenges else 1
+
+            progress.append({
+                "badge": badge.name,
+                "xp_progress": round(xp_progress * 100),
+                "challenge_progress": round(
+                    challenge_progress * 100
+                ),
+                "unlocked": badge.name in self.unlocked_badges
+            })
+
+        return progress
+
+    def show_badges(self):
+        """Display all available badges."""
+        print("\n===== ECOQUEST BADGE COLLECTION =====")
+
+        for badge in BADGES:
+            unlocked = badge.name in self.unlocked_badges
+            status = "UNLOCKED" if unlocked else "LOCKED"
+
+            print(f"\n{badge.icon} {badge.name}")
+            print(f"Description: {badge.description}")
+            print(f"Required XP: {badge.required_xp}")
+            print(
+                "Required challenges: "
+                f"{badge.required_challenges}"
+            )
+            print(f"Status: {status}")
+
+    def get_report(self):
+        """Generate a summary for weekly project reporting."""
+        return {
+            "student": self.student_name,
+            "total_xp": self.xp,
+            "completed_challenges": self.completed_challenges,
+            "unlocked_badges": self.unlocked_badges,
+            "total_badges": len(BADGES),
+        }
+
+    def save_progress(self):
+        """Save the current student's progress to JSON."""
+        data = {
+            "student_name": self.student_name,
+            "xp": self.xp,
+            "completed_challenges": self.completed_challenges,
+            "unlocked_badges": self.unlocked_badges,
+        }
+
+        with open(DATA_FILE, "w", encoding="utf-8") as file:
+            json.dump(data, file, indent=4)
+
+        print("Student progress saved successfully.")
+
+    def load_progress(self):
+        """Restore saved progress if it belongs to this student."""
+        if not os.path.exists(DATA_FILE):
+            print("No saved progress found.")
+            return False
+
+        with open(DATA_FILE, "r", encoding="utf-8") as file:
+            data = json.load(file)
+
+        if data.get("student_name") != self.student_name:
+            print("Saved progress belongs to another student.")
+            return False
+
+        self.xp = data.get("xp", 0)
+        self.completed_challenges = data.get(
+            "completed_challenges", 0
+        )
+        self.unlocked_badges = data.get("unlocked_badges", [])
+        self.check_badges()
+
+        print("Progress restored successfully.")
+        return True
+
+
+def main():
+    """Run a demonstration of the EcoQuest badge system."""
+    student = EcoQuestBadgeSystem("Demo Student")
+    student.load_progress()
+
+    print("\nWelcome to EcoQuest!")
+    print("1. Complete an eco challenge")
+    print("2. View all badges")
+    print("3. View progress")
+    print("4. Generate weekly summary")
+    print("5. Save and exit")
+
+    while True:
+        choice = input("\nChoose an option: ").strip()
+
+        if choice == "1":
+            try:
+                reward = int(input("Enter XP reward (default 50): ") or 50)
+                student.complete_challenge(reward)
+            except ValueError:
+                print("Please enter a valid positive whole number.")
+
+        elif choice == "2":
+            student.show_badges()
+
+        elif choice == "3":
+            for item in student.get_progress():
+                print(item)
+
+        elif choice == "4":
+            print("\n===== WEEKLY PROGRESS SUMMARY =====")
+            print(json.dumps(student.get_report(), indent=4))
+
+        elif choice == "5":
+            student.save_progress()
+            print("Thank you for using EcoQuest!")
+            break
+
+        else:
+            print("Invalid choice. Select an option from 1 to 5.")
+
+
+if __name__ == "__main__":
+    main()
