@@ -7,6 +7,9 @@ db = SQLAlchemy()
 
 # 2. Define the User Model
 class User(db.Model):
+    # Explicit table name avoids collision with PostgreSQL's reserved 'user' keyword in Supabase
+    __tablename__ = 'users'
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     username = db.Column(db.String(50), unique=True, nullable=True)
